@@ -43,28 +43,62 @@ uv sync --extra mining-pearl-cpu
 ```
 
 If Pearl wheels are not yet on PyPI (still true as of 2026-05-05), `uv sync`
-succeeds but doesn't install the actual Pearl Python packages. Run:
+succeeds but doesn't install the actual Pearl Python packages. Build/install
+them from a local Pearl checkout:
 
 ```bash
-jarvis mine init    # OJ detects the missing wheels and offers to build
-                    # via the build-from-pin path; ~3-5 minutes on first run.
+cd /path/to/pearl/py-pearl-mining
+maturin build --release
+uv pip install target/wheels/py_pearl_mining-*.whl
+uv pip install ../miner/miner-utils ../miner/pearl-gateway ../miner/miner-base
 ```
 
-`mine init` will:
-1. Clone Pearl at the version OJ has tested against
-2. Run `maturin build --release` for `py-pearl-mining`
-3. Install the resulting wheel + the `miner-base`, `pearl-gateway` packages
-4. Walk you through wallet address / pearld RPC config
-5. Run a short calibration to estimate your share-per-hour rate
+## Configure
+
+Create a Pearl wallet and start a synced `pearld` separately using Pearl's
+README. Then write OpenJarvis' mining config:
+
+```bash
+export PEARLD_RPC_PASSWORD="rpcpass"
+
+jarvis mine init \
+  --provider cpu-pearl \
+  --wallet-address "<your-prl1...address>" \
+  --pearld-rpc-url http://127.0.0.1:44107 \
+  --pearld-rpc-user rpcuser \
+  --pearld-rpc-password-env PEARLD_RPC_PASSWORD
+```
+
+On Apple Silicon, `--provider auto` chooses `apple-mps-pearl`; use
+`--provider cpu-pearl` for the conservative CPU path. The MPS path is
+experimental and currently useful for validation/profiling, not revenue.
+
+This writes:
+
+```toml
+[mining]
+provider = "cpu-pearl"
+wallet_address = "prl1..."
+submit_target = "solo"
+fee_bps = 0
+
+[mining.extra]
+pearld_rpc_url = "http://127.0.0.1:44107"
+pearld_rpc_user = "rpcuser"
+pearld_rpc_password_env = "PEARLD_RPC_PASSWORD"
+gateway_host = "127.0.0.1"
+gateway_port = 8337
+metrics_port = 9109
+```
 
 ## Run
 
 ```bash
-jarvis mine start    # launch gateway + miner-loop subprocesses
-jarvis mine status   # check live stats from the metrics endpoint
-jarvis mine doctor   # capability matrix (great when something goes wrong)
-jarvis mine stop     # stop mining
-jarvis mine logs -f  # tail logs from ~/.openjarvis/logs/mining/
+jarvis mine doctor        # capability matrix
+jarvis mine start         # launch gateway + miner-loop subprocesses
+jarvis mine status        # check sidecar + gateway metrics
+jarvis mine logs -n 120   # print recent logs
+jarvis mine stop          # stop mining subprocesses
 ```
 
 ## Reading `mine doctor`
@@ -90,7 +124,7 @@ Provider capability
 Notes
   - This is decoupled mining: your normal LLM inference is unaffected
   - Hashrate is far below H100 mining; see this doc above
-  - Metal-accelerated mining: planned for v2; not available yet
+  - MPS mining: available as experimental apple-mps-pearl
 Session
   Sidecar             absent (not running)
 ```
