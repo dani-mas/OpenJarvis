@@ -38,3 +38,30 @@ SIDECAR_LOCK_PATH = RUNTIME_DIR / "mining.lock"
 
 # Pearl source cache for build-from-pin path (see spec §7.2).
 PEARL_CACHE_DIR = Path.home() / ".openjarvis" / "cache" / "pearl"
+
+# ── cpu-pearl provider (Spec B v1, Apple Silicon and other non-CUDA hosts) ────
+
+# Default mining-loop matrix shapes. These are the same values used by Pearl's
+# upstream test_python_api.py — known to produce a valid proof per call at test
+# difficulty. Real difficulty is set per-block by the network and we can't
+# control that; the only knob we expose is the matmul shape, which determines
+# search space size per `mine()` call.
+CPU_PEARL_DEFAULT_M = 256
+CPU_PEARL_DEFAULT_N = 128
+CPU_PEARL_DEFAULT_K = 1024
+CPU_PEARL_DEFAULT_RANK = 32
+
+# Pattern lists copied verbatim from upstream Pearl tests
+# (pearl/py-pearl-mining/tests/test_python_api.py).
+CPU_PEARL_DEFAULT_ROWS_PATTERN = [0, 8, 64, 72]
+CPU_PEARL_DEFAULT_COLS_PATTERN = [0, 1, 8, 9, 32, 33, 40, 41]
+
+# Names of the Pearl Python packages cpu-pearl depends on, in install order.
+# These are installed from local paths under PEARL_CACHE_DIR (or, in the
+# future, from PyPI when Pearl publishes wheels).
+PEARL_CPU_PACKAGES = (
+    "py-pearl-mining",
+    "miner-utils",
+    "pearl-gateway",
+    "miner-base",
+)
