@@ -31,6 +31,8 @@ logger = logging.getLogger("openjarvis.mining.miner_loop")
 # Backoff after a failed mining round before retrying. Short enough that
 # transient gateway errors don't stall mining; long enough not to spin.
 _FAILURE_BACKOFF_SECONDS = 1.0
+_CONNECT_RETRY_SECONDS = 0.25
+_CONNECT_TIMEOUT_SECONDS = 30.0
 
 
 def _make_request(
@@ -68,6 +70,34 @@ async def _send_request(writer: asyncio.StreamWriter, request: dict[str, Any]) -
     """Write one JSON-RPC request followed by newline."""
     writer.write(json.dumps(request).encode() + b"\n")
     await writer.drain()
+
+
+async def _open_gateway_connection(
+    host: str,
+    port: int,
+    *,
+    timeout_seconds: float = _CONNECT_TIMEOUT_SECONDS,
+    retry_seconds: float = _CONNECT_RETRY_SECONDS,
+) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    """Connect to pearl-gateway, retrying while its listener comes up."""
+    deadline = asyncio.get_running_loop().time() + timeout_seconds
+    last_error: OSError | None = None
+    while True:
+        try:
+            return await asyncio.open_connection(host, port)
+        except OSError as exc:
+            last_error = exc
+            if asyncio.get_running_loop().time() >= deadline:
+                raise ConnectionError(
+                    f"timed out connecting to pearl-gateway at {host}:{port}"
+                ) from last_error
+            logger.info(
+                "gateway %s:%d not ready yet (%s); retrying",
+                host,
+                port,
+                exc,
+            )
+            await asyncio.sleep(retry_seconds)
 
 
 def _build_mining_config(pearl_mining_module: Any, *, k: int, rank: int) -> Any:
@@ -142,7 +172,12 @@ async def _mine_one_round(
 async def _main_loop(args: argparse.Namespace) -> None:
     import pearl_mining  # imported lazily so this module is itself import-safe
 
-    reader, writer = await asyncio.open_connection(args.gateway_host, args.gateway_port)
+    reader, writer = await _open_gateway_connection(
+        args.gateway_host,
+        args.gateway_port,
+        timeout_seconds=args.connect_timeout_seconds,
+        retry_seconds=args.connect_retry_seconds,
+    )
     request_id = 0
     try:
         while True:
@@ -164,6 +199,8 @@ async def _main_loop(args: argparse.Namespace) -> None:
                 continue
             if accepted:
                 logger.info("share accepted")
+            else:
+                await asyncio.sleep(_FAILURE_BACKOFF_SECONDS)
     finally:
         writer.close()
         await writer.wait_closed()
@@ -177,6 +214,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--n", type=int, default=128)
     p.add_argument("--k", type=int, default=1024)
     p.add_argument("--rank", type=int, default=32)
+    p.add_argument("--connect-timeout-seconds", type=float, default=30.0)
+    p.add_argument("--connect-retry-seconds", type=float, default=0.25)
     return p.parse_args(argv)
 
 

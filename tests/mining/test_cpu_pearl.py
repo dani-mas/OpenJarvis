@@ -255,6 +255,7 @@ def test_provider_runs_end_to_end_on_this_host(tmp_path, monkeypatch):
 
     provider = CpuPearlProvider()
     asyncio.run(provider.start(cfg))
+    still_running_at_end = False
     try:
         import time as _time
 
@@ -263,7 +264,11 @@ def test_provider_runs_end_to_end_on_this_host(tmp_path, monkeypatch):
         while _time.monotonic() < deadline:
             if provider.is_running():
                 saw_running = True
+            else:
+                if saw_running:
+                    break
             _time.sleep(1.0)
+        still_running_at_end = provider.is_running()
     finally:
         asyncio.run(provider.stop())
 
@@ -273,3 +278,4 @@ def test_provider_runs_end_to_end_on_this_host(tmp_path, monkeypatch):
             print(log_file.read_text()[:2000])
 
     assert saw_running, "provider never reported is_running"
+    assert still_running_at_end, "provider exited before the live smoke window ended"

@@ -1,6 +1,7 @@
 """Tests for openjarvis.mining._miner_loop_main."""
 from __future__ import annotations
 
+import asyncio
 import base64
 from unittest.mock import MagicMock
 
@@ -48,3 +49,34 @@ def test_jsonrpc_envelope_shape():
     assert req["method"] == "getMiningInfo"
     assert req["id"] == 42
     assert req["params"] == {}
+
+
+def test_open_gateway_connection_retries_until_listener_ready(monkeypatch):
+    """Initial gateway connect has startup-race retry/backoff."""
+    from openjarvis.mining import _miner_loop_main
+
+    calls = 0
+    fake_reader = object()
+    fake_writer = object()
+
+    async def fake_open_connection(host, port):
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            raise ConnectionRefusedError("not ready")
+        return fake_reader, fake_writer
+
+    monkeypatch.setattr(asyncio, "open_connection", fake_open_connection)
+
+    reader, writer = asyncio.run(
+        _miner_loop_main._open_gateway_connection(
+            "127.0.0.1",
+            18337,
+            timeout_seconds=1.0,
+            retry_seconds=0.0,
+        )
+    )
+
+    assert calls == 3
+    assert reader is fake_reader
+    assert writer is fake_writer
