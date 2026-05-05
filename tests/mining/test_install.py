@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 import types
 
@@ -55,3 +56,52 @@ def test_module_importable_returns_false_on_value_error(monkeypatch):
     # Make sure the module name is NOT in sys.modules, so we hit the find_spec path.
     monkeypatch.delitem(sys.modules, "_nonexistent_test_pkg", raising=False)
     assert _install._module_importable("_nonexistent_test_pkg") is False
+
+
+def _make_dummy_wheel(cache_dir):
+    """Create a fake wheel file so the glob in build_from_pin finds something."""
+    wheels_dir = cache_dir / "py-pearl-mining" / "target" / "wheels"
+    wheels_dir.mkdir(parents=True, exist_ok=True)
+    (wheels_dir / "py_pearl_mining-0.1.0-cp312-cp312-macosx_14_0_arm64.whl").touch()
+
+
+def test_build_from_pin_clones_when_missing(tmp_path, monkeypatch):
+    """If the local cache dir is empty, build_from_pin clones first."""
+    from openjarvis.mining import _install
+
+    cache_dir = tmp_path / "pearl"
+    _make_dummy_wheel(cache_dir)
+    monkeypatch.setattr(_install, "_resolve_clone_dir", lambda: cache_dir)
+    calls = []
+    monkeypatch.setattr(
+        subprocess,
+        "check_call",
+        lambda args, **kw: calls.append(list(args)),
+    )
+
+    _install.build_from_pin(pinned_ref="abc123")
+
+    # First call must be `git clone`; later calls include the checkout.
+    assert calls[0][:2] == ["git", "clone"]
+    assert any(c[:2] == ["git", "checkout"] and "abc123" in c for c in calls)
+
+
+def test_build_from_pin_skips_clone_when_present(tmp_path, monkeypatch):
+    """If the cache already has .git, skip the clone but still fetch+checkout."""
+    from openjarvis.mining import _install
+
+    cache_dir = tmp_path / "pearl"
+    (cache_dir / ".git").mkdir(parents=True)
+    _make_dummy_wheel(cache_dir)
+    monkeypatch.setattr(_install, "_resolve_clone_dir", lambda: cache_dir)
+    calls = []
+    monkeypatch.setattr(
+        subprocess,
+        "check_call",
+        lambda args, **kw: calls.append(list(args)),
+    )
+
+    _install.build_from_pin(pinned_ref="abc123")
+
+    assert not any(c[:2] == ["git", "clone"] for c in calls)
+    assert any(c[:2] == ["git", "checkout"] for c in calls)
