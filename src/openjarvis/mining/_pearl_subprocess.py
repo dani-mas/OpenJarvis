@@ -64,26 +64,32 @@ class PearlSubprocessLauncher:
 
     def start(self, *, m: int, n: int, k: int, rank: int) -> None:
         """Spawn gateway and miner-loop subprocesses."""
+        if self._handles is not None:
+            raise RuntimeError(
+                "PearlSubprocessLauncher already started; "
+                "call stop() before starting again"
+            )
         env = self._build_gateway_env()
 
         # Spawn pearl-gateway first. ``pearl-gateway`` is the console-script
         # entry point exposed by the pearl_gateway package's pyproject.toml.
-        gateway_log = (self.log_dir / "pearl-gateway.log").open("a", buffering=1)
         logger.info(
             "[cpu-pearl] starting pearl-gateway on %s:%d (metrics %d)",
             self.gateway_host,
             self.gateway_port,
             self.metrics_port,
         )
-        gateway = subprocess.Popen(
-            ["pearl-gateway"],
-            env=env,
-            stdout=gateway_log,
-            stderr=subprocess.STDOUT,
-        )
+        gateway_log_path = self.log_dir / "pearl-gateway.log"
+        with gateway_log_path.open("a", buffering=1) as gateway_log:
+            gateway = subprocess.Popen(
+                ["pearl-gateway"],
+                env=env,
+                stdout=gateway_log,
+                stderr=subprocess.STDOUT,
+            )
+        # gateway_log closes here; the child holds its own fd
 
         # Spawn miner-loop pointed at the gateway.
-        miner_log = (self.log_dir / "cpu-pearl-miner.log").open("a", buffering=1)
         logger.info(
             "[cpu-pearl] starting miner-loop (m=%d n=%d k=%d rank=%d)",
             m,
@@ -91,27 +97,29 @@ class PearlSubprocessLauncher:
             k,
             rank,
         )
-        miner_loop = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "openjarvis.mining._miner_loop_main",
-                "--gateway-host",
-                self.gateway_host,
-                "--gateway-port",
-                str(self.gateway_port),
-                "--m",
-                str(m),
-                "--n",
-                str(n),
-                "--k",
-                str(k),
-                "--rank",
-                str(rank),
-            ],
-            stdout=miner_log,
-            stderr=subprocess.STDOUT,
-        )
+        miner_log_path = self.log_dir / "cpu-pearl-miner.log"
+        with miner_log_path.open("a", buffering=1) as miner_log:
+            miner_loop = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "openjarvis.mining._miner_loop_main",
+                    "--gateway-host",
+                    self.gateway_host,
+                    "--gateway-port",
+                    str(self.gateway_port),
+                    "--m",
+                    str(m),
+                    "--n",
+                    str(n),
+                    "--k",
+                    str(k),
+                    "--rank",
+                    str(rank),
+                ],
+                stdout=miner_log,
+                stderr=subprocess.STDOUT,
+            )
 
         self._handles = _ProcessHandles(gateway=gateway, miner_loop=miner_loop)
 
@@ -139,6 +147,7 @@ class PearlSubprocessLauncher:
                         grace,
                     )
                     proc.kill()
+                    proc.wait()  # reap the zombie
         self._handles = None
 
     def is_running(self) -> bool:

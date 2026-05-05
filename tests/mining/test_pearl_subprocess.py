@@ -90,3 +90,23 @@ def test_launcher_stop_idempotent(fake_popen, tmp_path):
         launcher.start(m=256, n=128, k=1024, rank=32)
         launcher.stop()
         launcher.stop()  # should not raise
+
+
+def test_launcher_spawn_order_is_gateway_then_miner_loop(fake_popen, tmp_path):
+    """Gateway must be spawned before the miner-loop."""
+    with patch("subprocess.Popen", return_value=fake_popen) as mock_popen:
+        launcher = _make_launcher(tmp_path)
+        launcher.start(m=256, n=128, k=1024, rank=32)
+        first_call = mock_popen.call_args_list[0]
+        second_call = mock_popen.call_args_list[1]
+        assert first_call.args[0][0] == "pearl-gateway"
+        assert "_miner_loop_main" in " ".join(second_call.args[0])
+
+
+def test_launcher_start_twice_raises(fake_popen, tmp_path):
+    """Calling start() while already running raises RuntimeError."""
+    with patch("subprocess.Popen", return_value=fake_popen):
+        launcher = _make_launcher(tmp_path)
+        launcher.start(m=256, n=128, k=1024, rank=32)
+        with pytest.raises(RuntimeError, match="already started"):
+            launcher.start(m=256, n=128, k=1024, rank=32)
