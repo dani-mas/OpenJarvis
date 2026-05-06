@@ -23,6 +23,8 @@ env/
 
 # Testing
 .pytest_cache/
+.tmp-pytest-run/
+tests/.tmp-pytest/
 .ruff_cache/
 .coverage
 htmlcov/

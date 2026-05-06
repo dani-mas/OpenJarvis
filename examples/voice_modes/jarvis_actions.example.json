@@ -1,0 +1,18 @@
+{
+  "actions": [
+    {
+      "name": "monitoring",
+      "triggers": ["abre monitoring", "monitoring"],
+      "open": ["https://monitoring.coduworks.com/"],
+      "message": "Hecho."
+    },
+    {
+      "name": "cursor c4 knx",
+      "triggers": ["abre c4 knx", "abre el repo c4 knx"],
+      "commands": [
+        ["cursor", "--new-window", "C:\\Users\\dani2\\github\\C4-KNX"]
+      ],
+      "message": "Hecho."
+    }
+  ]
+}

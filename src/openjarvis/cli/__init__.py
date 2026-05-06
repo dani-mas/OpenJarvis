@@ -6,6 +6,7 @@ import click
 
 import openjarvis
 from openjarvis.cli._bootstrap import bootstrap_cmd
+from openjarvis.cli.app import app
 from openjarvis.cli.add_cmd import add
 from openjarvis.cli.agent_cmd import agent
 from openjarvis.cli.ask import ask
@@ -13,6 +14,7 @@ from openjarvis.cli.bench_cmd import bench
 from openjarvis.cli.channel_cmd import channel
 from openjarvis.cli.channels_cmd import channels
 from openjarvis.cli.chat_cmd import chat
+from openjarvis.cli.code_status import code_status
 from openjarvis.cli.compose_cmd import compose
 from openjarvis.cli.config_cmd import config
 from openjarvis.cli.connect_cmd import connect
@@ -32,6 +34,7 @@ from openjarvis.cli.operators_cmd import operators
 from openjarvis.cli.optimize_cmd import optimize_group
 from openjarvis.cli.pearl_cmd import pearl
 from openjarvis.cli.quickstart_cmd import quickstart
+from openjarvis.cli.reminder_fire import reminder_fire
 from openjarvis.cli.registry_cmd import registry
 from openjarvis.cli.scan_cmd import scan
 from openjarvis.cli.scheduler_cmd import scheduler
@@ -40,6 +43,21 @@ from openjarvis.cli.skill_cmd import skill
 from openjarvis.cli.telemetry_cmd import telemetry
 from openjarvis.cli.tool_cmd import tool
 from openjarvis.cli.vault_cmd import vault
+from openjarvis.cli.voice import voice
+from openjarvis.cli.voice_actions import voice_actions
+from openjarvis.cli.voice_context import voice_context
+from openjarvis.cli.voice_devices import voice_devices
+from openjarvis.cli.voice_doctor import voice_doctor
+from openjarvis.cli.voice_logs import voice_logs
+from openjarvis.cli.voice_plan import voice_plan
+from openjarvis.cli.voice_restart import voice_restart
+from openjarvis.cli.voice_send import voice_send
+from openjarvis.cli.voice_start import voice_start
+from openjarvis.cli.voice_startup import voice_startup
+from openjarvis.cli.voice_status import voice_status
+from openjarvis.cli.voice_stop import voice_stop
+from openjarvis.cli.voice_mode import voice_mode
+from openjarvis.cli.wake import wake
 from openjarvis.cli.workflow_cmd import workflow
 from openjarvis.learning.distillation.cli import learning_group
 
@@ -75,8 +93,10 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool) -> None:
 
 
 cli.add_command(init, "init")
+cli.add_command(app, "app")
 cli.add_command(ask, "ask")
 cli.add_command(chat, "chat")
+cli.add_command(code_status, "code-status")
 cli.add_command(serve, "serve")
 cli.add_command(model, "model")
 cli.add_command(memory, "memory")
@@ -101,6 +121,7 @@ cli.add_command(operators, "operators")
 cli.add_command(eval_group, "eval")
 cli.add_command(host, "host")
 cli.add_command(quickstart, "quickstart")
+cli.add_command(reminder_fire, "reminder-fire")
 cli.add_command(optimize_group, "optimize")
 cli.add_command(feedback_group, "feedback")
 cli.add_command(compose, "compose")
@@ -111,6 +132,21 @@ cli.add_command(config, "config")
 cli.add_command(scan, "scan")
 cli.add_command(connect, "connect")
 cli.add_command(digest, "digest")
+cli.add_command(voice, "voice")
+cli.add_command(voice_actions, "voice-actions")
+cli.add_command(voice_context, "voice-context")
+cli.add_command(voice_devices, "voice-devices")
+cli.add_command(voice_doctor, "voice-doctor")
+cli.add_command(voice_logs, "voice-logs")
+cli.add_command(voice_plan, "voice-plan")
+cli.add_command(voice_restart, "voice-restart")
+cli.add_command(voice_start, "voice-start")
+cli.add_command(voice_startup, "voice-startup")
+cli.add_command(voice_send, "voice-send")
+cli.add_command(voice_status, "voice-status")
+cli.add_command(voice_stop, "voice-stop")
+cli.add_command(voice_mode, "voice-mode")
+cli.add_command(wake, "wake")
 cli.add_command(deep_research_setup, "deep-research-setup")
 cli.add_command(deep_research_setup, "research")
 cli.add_command(learning_group, "learning")

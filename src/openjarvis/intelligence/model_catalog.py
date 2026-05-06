@@ -681,6 +681,21 @@ BUILTIN_MODELS: List[ModelSpec] = [
         },
     ),
     ModelSpec(
+        model_id="gpt-5.5",
+        name="GPT-5.5",
+        parameter_count_b=0.0,
+        context_length=1_000_000,
+        supported_engines=("cloud",),
+        provider="openai",
+        requires_api_key=True,
+        metadata={
+            "architecture": "proprietary",
+            "pricing_input": 5.00,
+            "pricing_output": 30.00,
+            "url": "https://developers.openai.com/api/docs/models/gpt-5.5",
+        },
+    ),
+    ModelSpec(
         model_id="gpt-5-mini",
         name="GPT-5 Mini",
         parameter_count_b=0.0,

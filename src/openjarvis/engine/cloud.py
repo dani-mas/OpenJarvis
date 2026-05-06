@@ -23,6 +23,7 @@ from openjarvis.engine._stubs import StreamChunk
 PRICING: Dict[str, tuple[float, float]] = {
     "gpt-4o": (2.50, 10.00),
     "gpt-4o-mini": (0.15, 0.60),
+    "gpt-5.5": (5.00, 30.00),
     "gpt-5": (10.00, 30.00),
     "gpt-5.4": (15.00, 60.00),
     "gpt-5-mini": (0.25, 2.00),
@@ -52,6 +53,7 @@ _OPENAI_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
     "gpt-5",
+    "gpt-5.5",
     "gpt-5.4",
     "gpt-5-mini",
     "o3-mini",
@@ -127,10 +129,10 @@ def _is_google_model(model: str) -> bool:
 def _is_openai_reasoning_model(model: str) -> bool:
     """Check if model is an OpenAI reasoning model that restricts temperature."""
     m = model.lower()
-    # o1/o3 series and gpt-5-mini (all variants) are reasoning models
-    if m.startswith(("o1", "o3")):
+    # o1/o3 series and GPT-5 family models restrict temperature.
+    if m.startswith(("o1", "o3", "gpt-5")):
         return True
-    return m == "gpt-5-mini" or m.startswith("gpt-5-mini-")
+    return False
 
 
 def estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
