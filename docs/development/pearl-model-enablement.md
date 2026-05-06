@@ -29,7 +29,7 @@ The H100 smoke run validated the default Llama Pearl model end to end through
 `jarvis mine start`, vLLM `/v1/models`, OpenJarvis inference routing, Pearl
 gateway template refresh, and `jarvis mine validate-model`.
 
-The Qwen and Gemma targets remain planned:
+The Qwen targets and smaller Gemma target remain planned:
 
 - `pearl-ai/Qwen3.5-9B-pearl`, `pearl-ai/Qwen3.6-27B-pearl`, and
   `pearl-ai/Gemma-4-E4B-it-pearl` are not publicly available artifacts yet.
@@ -39,6 +39,23 @@ The Qwen and Gemma targets remain planned:
   A local cache experiment proved the processor can be loaded only after
   injecting metadata from `google/gemma-4-31B-it`; that is not sufficient for
   OpenJarvis promotion because a clean user install would still fail.
+
+PR #323 added a local staging path for original checkpoint conversion and H100
+runtime validation. Current local evidence:
+
+- `google/gemma-4-31B-it` converted to
+  `/tmp/openjarvis-h100/converted/Gemma-4-31B-it-pearl-experimental`.
+  The local artifact passes `jarvis mine inspect-model`, starts through
+  `jarvis mine start --local-model-path`, exposes
+  `pearl-ai/Gemma-4-31B-it-pearl` at `/v1/models`, completes a chat prompt,
+  and passes `jarvis mine validate-model --allow-planned`. Validation artifact:
+  `/tmp/openjarvis-h100/converted/Gemma-4-31B-it-pearl-experimental-validate.json`.
+- `Qwen/Qwen3.5-9B` converted to
+  `/tmp/openjarvis-h100/converted/Qwen3.5-9B-pearl-experimental`.
+  The local artifact passes `jarvis mine inspect-model`, starts Pearl gateway,
+  resolves `Qwen3_5ForConditionalGeneration`, selects Pearl kernels, and loads
+  all four safetensors shards. It does not yet pass validation: vLLM stalls
+  after model loading before `/v1/models` becomes reachable.
 
 ## Enablement Checklist
 
